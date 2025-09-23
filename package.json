@@ -1,23 +1,19 @@
 {
   "name": "whatsapp-calculator-bot",
   "version": "1.0.0",
-  "description": "Bot de calculadora para WhatsApp hospedado no Render",
+  "description": "Bot de calculadora para WhatsApp no Render",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
-    "dev": "node bot.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node bot.js"
   },
   "dependencies": {
     "whatsapp-web.js": "^1.23.0",
-    "qrcode-terminal": "^0.12.0",
+    "qrcode": "^1.5.3",
     "mathjs": "^11.8.0",
     "express": "^4.18.2"
   },
   "engines": {
     "node": ">=18.x"
-  },
-  "keywords": ["whatsapp", "bot", "calculator", "render"],
-  "author": "Seu Nome",
-  "license": "MIT"
+  }
 }
