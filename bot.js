@@ -255,6 +255,12 @@ client.on('disconnected', (reason) => {
 // ==================== COMANDOS DO BOT ====================
 
 client.on('message_create', async (message) => {
+  // 🔥🔥🔥 CORREÇÃO CRÍTICA: IGNORAR MENSAGENS DO PRÓPRIO BOT
+  if (message.fromMe) {
+    addLog('🔇 Ignorando mensagem do próprio bot', 'warning');
+    return;
+  }
+  
   // Ignorar grupos e status
   if (message.from.includes('@g.us') || message.from.includes('status')) return;
   
@@ -314,7 +320,7 @@ client.on('message_create', async (message) => {
       const resposta = `🧮 *Calculadora*\n\n📝 *Expressão:* ${expressao}\n✅ *Resultado:* ${resultadoFormatado}`;
       await message.reply(resposta);
       
-      addLog(`✅ Resultado para ${nomeUsuario}: ${expressao} = ${resultadoFormatado}`);
+      addLog(`✅ Resultado enviado para ${nomeUsuario}: ${expressao} = ${resultadoFormatado}`);
       
     } catch (error) {
       addLog(`❌ Erro no cálculo de ${nomeUsuario}: ${error.message}`);
