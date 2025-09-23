@@ -254,46 +254,75 @@ client.on('disconnected', (reason) => {
 
 // ==================== COMANDOS DO BOT ====================
 
+// ==================== COMANDOS DO BOT ====================
+
 client.on('message_create', async (message) => {
-  // 🔥🔥🔥 CORREÇÃO CRÍTICA: IGNORAR MENSAGENS DO PRÓPRIO BOT
+  // 🔥 CORREÇÃO: Ignorar mensagens do próprio bot
   if (message.fromMe) {
     addLog('🔇 Ignorando mensagem do próprio bot', 'warning');
     return;
   }
   
-  // Ignorar grupos e status
-  if (message.from.includes('@g.us') || message.from.includes('status')) return;
+  // Log para DEBUG - mostrar TODAS as mensagens recebidas
+  console.log('🔍 DEBUG Mensagem recebida:', {
+    from: message.from,
+    body: message.body,
+    isGroup: message.from.includes('@g.us'),
+    hasMedia: message.hasMedia,
+    type: message.type
+  });
+
+  addLog(`🔍 DEBUG: Mensagem de ${message.from}: "${message.body}"`, 'info');
   
-  const texto = message.body.trim();
+  // Ignorar grupos e status
+  if (message.from.includes('@g.us')) {
+    addLog('🔇 Ignorando mensagem de grupo', 'warning');
+    return;
+  }
+  
+  if (message.from.includes('status')) {
+    addLog('🔇 Ignorando status', 'warning');
+    return;
+  }
+
+  const texto = message.body ? message.body.trim() : '';
   const usuario = message.from;
   const nomeUsuario = message._data.notifyName || 'Usuário';
 
-  addLog(`📨 Mensagem de ${nomeUsuario}: "${texto}"`);
+  addLog(`📨 MENSAGEM DETECTADA de ${nomeUsuario}: "${texto}"`, 'success');
+
+  // 🔥 TESTE SIMPLES - Responder a QUALQUER mensagem
+  if (texto) {
+    addLog(`✅ VOU RESPONDER à mensagem: "${texto}"`, 'success');
+    
+    try {
+      // Teste básico - responder a qualquer texto
+      await message.reply(`🤖 Bot recebeu: "${texto}"\n💡 Envie !ajuda para comandos`);
+      addLog(`✅ RESPOSTA ENVIADA para ${nomeUsuario}`, 'success');
+    } catch (error) {
+      addLog(`❌ ERRO ao responder: ${error.message}`, 'error');
+    }
+    return;
+  }
 
   // Comando de ajuda
   if (texto === '!ajuda' || texto === '!help') {
     const ajudaMsg = `🧮 *CALCULADORA BOT* 🤖
 
 *Comandos Disponíveis:*
-• !calc [expressão] - Calculadora matemática
-• !historico - Seus últimos cálculos
-• !limpar - Limpa seu histórico
+• !calc [expressão] - Calculadora
+• !historico - Seus cálculos
+• !limpar - Limpa histórico
 • !status - Status do sistema
 
-*Exemplos:*
-!calc 2 + 3 * 4
-!calc (10 + 5) / 3
-!calc sqrt(16) + 5^2
-
-*Operações:*
-+ - * / ^ ( ) sqrt() sin() cos() tan()`;
-
+Digite qualquer mensagem para testar!`;
+    
     await message.reply(ajudaMsg);
     addLog(`✅ Ajuda enviada para ${nomeUsuario}`);
     return;
   }
 
-  // Calculadora
+  // Restante dos comandos da calculadora...
   if (texto.startsWith('!calc ')) {
     try {
       const expressao = texto.replace('!calc ', '').trim();
@@ -302,69 +331,15 @@ client.on('message_create', async (message) => {
       const resultado = math.evaluate(expressao);
       const resultadoFormatado = math.format(resultado, { precision: 10 });
       
-      // Salvar no histórico
-      if (!historico.has(usuario)) {
-        historico.set(usuario, []);
-      }
-      historico.get(usuario).push({
-        expressao,
-        resultado: resultadoFormatado,
-        data: new Date().toLocaleString('pt-BR')
-      });
-      
-      // Manter apenas últimos 10
-      if (historico.get(usuario).length > 10) {
-        historico.get(usuario).shift();
-      }
-
       const resposta = `🧮 *Calculadora*\n\n📝 *Expressão:* ${expressao}\n✅ *Resultado:* ${resultadoFormatado}`;
       await message.reply(resposta);
       
       addLog(`✅ Resultado enviado para ${nomeUsuario}: ${expressao} = ${resultadoFormatado}`);
       
     } catch (error) {
-      addLog(`❌ Erro no cálculo de ${nomeUsuario}: ${error.message}`);
-      await message.reply('❌ *Expressão inválida!*\nUse: !calc 2 + 3 * 4');
+      addLog(`❌ Erro no cálculo: ${error.message}`);
+      await message.reply('❌ *Expressão inválida!*');
     }
-    return;
-  }
-
-  // Histórico
-  if (texto === '!historico') {
-    const calculos = historico.get(usuario) || [];
-    
-    if (calculos.length === 0) {
-      await message.reply('📊 *Histórico vazio*\nUse !calc para fazer alguns cálculos!');
-      return;
-    }
-    
-    let historicoMsg = '📊 *SEU HISTÓRICO*\n\n';
-    calculos.slice(-10).forEach((calc, index) => {
-      historicoMsg += `${index + 1}. ${calc.expressao} = *${calc.resultado}*\n`;
-    });
-    
-    await message.reply(historicoMsg);
-    addLog(`📊 Histórico enviado para ${nomeUsuario}`);
-    return;
-  }
-
-  // Limpar histórico
-  if (texto === '!limpar') {
-    historico.set(usuario, []);
-    await message.reply('🗑️ *Histórico limpo com sucesso!*');
-    addLog(`🗑️ Histórico limpo para ${nomeUsuario}`);
-    return;
-  }
-
-  // Status
-  if (texto === '!status') {
-    const totalUsuarios = historico.size;
-    const totalCalculos = Array.from(historico.values()).reduce((acc, calc) => acc + calc.length, 0);
-    
-    const statusMsg = `🤖 *STATUS DO BOT*\n\n✅ *Online no Render.com*\n👥 *Usuários:* ${totalUsuarios}\n🧮 *Cálculos:* ${totalCalculos}\n⏰ *Uptime:* ${Math.round(process.uptime() / 60)}min`;
-    
-    await message.reply(statusMsg);
-    addLog(`📊 Status enviado para ${nomeUsuario}`);
     return;
   }
 });
