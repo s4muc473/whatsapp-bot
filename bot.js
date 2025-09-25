@@ -1,6 +1,4 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode');
-const math = require('mathjs');
 const express = require('express');
 const path = require('path');
 
@@ -15,11 +13,11 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'online', 
     timestamp: new Date().toISOString(),
-    service: 'WhatsApp Calculator Bot'
+    service: 'WhatsApp Date Bot'
   });
 });
 
-// Página principal com QR Code
+// Página principal
 app.get('/', async (req, res) => {
   try {
     let qrCodeHtml = '<div style="color: red; font-weight: bold;">Aguardando QR Code...</div>';
@@ -35,7 +33,7 @@ app.get('/', async (req, res) => {
     <!DOCTYPE html>
     <html>
     <head>
-        <title>WhatsApp Calculator Bot</title>
+        <title>WhatsApp Date Bot</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
@@ -88,7 +86,7 @@ app.get('/', async (req, res) => {
     </head>
     <body>
         <div class="container">
-            <h1>🤖 WhatsApp Calculator Bot</h1>
+            <h1>📅 WhatsApp Date Bot</h1>
             <p><strong>Status:</strong> <span class="status ${global.clientReady ? 'online' : 'offline'}">
                 ${global.clientReady ? '✅ CONECTADO' : '⏳ AGUARDANDO QR CODE'}
             </span></p>
@@ -111,18 +109,15 @@ app.get('/', async (req, res) => {
             </div>
 
             <div class="instructions">
-                <h3>🧮 Comandos do Bot:</h3>
+                <h3>📅 Comandos do Bot:</h3>
                 <div class="code">
-!ajuda - Mostra esta ajuda<br>
-!calc 2 + 3 * 4 - Calculadora<br>
-!historico - Seus cálculos<br>
-!status - Status do bot
+!date - Mostra a data e hora atual
+!ajuda - Mostra esta ajuda
                 </div>
             </div>
 
             <div style="text-align: center; margin-top: 20px;">
-                <a href="/health" style="color: #667eea; text-decoration: none;">🔍 Ver Status Técnico</a> | 
-                <a href="/logs" style="color: #667eea; text-decoration: none;">📊 Ver Logs</a>
+                <a href="/health" style="color: #667eea; text-decoration: none;">🔍 Ver Status Técnico</a>
             </div>
         </div>
 
@@ -140,38 +135,6 @@ app.get('/', async (req, res) => {
   } catch (error) {
     res.status(500).send('Erro ao carregar página');
   }
-});
-
-// Endpoint para logs
-app.get('/logs', (req, res) => {
-  const logs = global.appLogs || ['Sistema iniciado...'];
-  const html = `
-  <!DOCTYPE html>
-  <html>
-  <head>
-      <title>Logs do Bot</title>
-      <style>
-          body { font-family: monospace; background: #1a202c; color: #e2e8f0; padding: 20px; }
-          .log { margin: 5px 0; padding: 5px; border-left: 3px solid #4299e1; }
-          .error { border-left-color: #f56565; }
-          .success { border-left-color: #48bb78; }
-          .warning { border-left-color: #ed8936; }
-      </style>
-  </head>
-  <body>
-      <h2>📊 Logs do Sistema</h2>
-      <div id="logs">${logs.map(log => `<div class="log">${log}</div>`).join('')}</div>
-      <script>setTimeout(() => location.reload(), 5000);</script>
-  </body>
-  </html>
-  `;
-  res.send(html);
-});
-
-// Inicializar servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`📱 Acesse: https://whatsapp-bot-jh2c.onrender.com`);
 });
 
 // Sistema de logs
@@ -208,8 +171,6 @@ const client = new Client({
   }
 });
 
-const historico = new Map();
-
 // ==================== EVENTOS DO BOT ====================
 
 client.on('ready', () => {
@@ -221,16 +182,12 @@ client.on('qr', async (qr) => {
   addLog('📱 QR Code gerado - Aguardando escaneamento...', 'warning');
   
   try {
-    // Gerar QR Code como imagem base64
+    const qrcode = require('qrcode');
     const qrImage = await qrcode.toDataURL(qr);
     global.currentQR = qrImage;
-    
     addLog('🖼️ QR Code convertido para imagem web', 'success');
   } catch (error) {
     addLog('❌ Erro ao gerar QR Code: ' + error.message, 'error');
-    
-    // Fallback: mostrar QR code como texto simples
-    addLog('🔡 QR Code (texto): ' + qr.substring(0, 100) + '...', 'warning');
   }
 });
 
@@ -254,91 +211,88 @@ client.on('disconnected', (reason) => {
 
 // ==================== COMANDOS DO BOT ====================
 
-// ==================== COMANDOS DO BOT ====================
-
 client.on('message_create', async (message) => {
-  // 🔥 CORREÇÃO: Ignorar mensagens do próprio bot
+  // Ignorar mensagens do próprio bot
   if (message.fromMe) {
-    addLog('🔇 Ignorando mensagem do próprio bot', 'warning');
     return;
   }
-  
-  // Log para DEBUG - mostrar TODAS as mensagens recebidas
-  console.log('🔍 DEBUG Mensagem recebida:', {
-    from: message.from,
-    body: message.body,
-    isGroup: message.from.includes('@g.us'),
-    hasMedia: message.hasMedia,
-    type: message.type
-  });
-
-  addLog(`🔍 DEBUG: Mensagem de ${message.from}: "${message.body}"`, 'info');
   
   // Ignorar grupos e status
-  if (message.from.includes('@g.us')) {
-    addLog('🔇 Ignorando mensagem de grupo', 'warning');
-    return;
-  }
-  
-  if (message.from.includes('status')) {
-    addLog('🔇 Ignorando status', 'warning');
+  if (message.from.includes('@g.us') || message.from.includes('status')) {
     return;
   }
 
   const texto = message.body ? message.body.trim() : '';
-  const usuario = message.from;
   const nomeUsuario = message._data.notifyName || 'Usuário';
 
-  addLog(`📨 MENSAGEM DETECTADA de ${nomeUsuario}: "${texto}"`, 'success');
-
-  // 🔥 TESTE SIMPLES - Responder a QUALQUER mensagem
-  if (texto) {
-    addLog(`✅ VOU RESPONDER à mensagem: "${texto}"`, 'success');
-    
-    try {
-      // Teste básico - responder a qualquer texto
-      await message.reply(`🤖 Bot recebeu: "${texto}"\n💡 Envie !ajuda para comandos`);
-      addLog(`✅ RESPOSTA ENVIADA para ${nomeUsuario}`, 'success');
-    } catch (error) {
-      addLog(`❌ ERRO ao responder: ${error.message}`, 'error');
-    }
-    return;
-  }
+  addLog(`📨 Mensagem de ${nomeUsuario}: "${texto}"`);
 
   // Comando de ajuda
   if (texto === '!ajuda' || texto === '!help') {
-    const ajudaMsg = `🧮 *CALCULADORA BOT* 🤖
+    const ajudaMsg = `📅 *BOT DE DATA E HORA* 🤖
 
 *Comandos Disponíveis:*
-• !calc [expressão] - Calculadora
-• !historico - Seus cálculos
-• !limpar - Limpa histórico
-• !status - Status do sistema
+• !date - Mostra a data e hora atual
+• !ajuda - Mostra esta mensagem
 
-Digite qualquer mensagem para testar!`;
-    
+*Exemplo:* 
+Envie "!date" para ver a data e hora atual`;
+
     await message.reply(ajudaMsg);
     addLog(`✅ Ajuda enviada para ${nomeUsuario}`);
     return;
   }
 
-  // Restante dos comandos da calculadora...
-  if (texto.startsWith('!calc ')) {
+  // Comando de data
+  if (texto === '!date') {
     try {
-      const expressao = texto.replace('!calc ', '').trim();
-      addLog(`🧮 Calculando: ${expressao} para ${nomeUsuario}`);
+      const agora = new Date();
       
-      const resultado = math.evaluate(expressao);
-      const resultadoFormatado = math.format(resultado, { precision: 10 });
+      // Formatando a data em português brasileiro
+      const opcoes = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        timeZone: 'America/Sao_Paulo'
+      };
       
-      const resposta = `🧮 *Calculadora*\n\n📝 *Expressão:* ${expressao}\n✅ *Resultado:* ${resultadoFormatado}`;
-      await message.reply(resposta);
+      const dataFormatada = agora.toLocaleDateString('pt-BR', opcoes);
+      const horaFormatada = agora.toLocaleTimeString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
       
-      addLog(`✅ Resultado enviado para ${nomeUsuario}: ${expressao} = ${resultadoFormatado}`);
+      const dataResposta = `📅 *DATA E HORA ATUAL*
+
+🌍 *Data:* ${dataFormatada}
+⏰ *Hora:* ${horaFormatada}
+📍 *Fuso Horário:* America/Sao_Paulo (BRT)
+
+*Informações Técnicas:*
+• *Timestamp:* ${agora.getTime()}
+• *ISO:* ${agora.toISOString()}
+• *UTC:* ${agora.toUTCString()}`;
+
+      await message.reply(dataResposta);
+      addLog(`✅ Data enviada para ${nomeUsuario}: ${dataFormatada} ${horaFormatada}`);
       
     } catch (error) {
-      addLog(`❌ Erro no cálculo: ${error.message}`);
-      await message.reply('❌ *Expressão inválida!*');
+      addLog(`❌ Erro ao processar data: ${error.message}`);
+      await message.reply('❌ *Erro ao obter data atual!*');
+    }
+    return;
+  }
+
+  // Responder a outras mensagens
+  if (texto) {
+    try {
+      await message.reply(`🤖 Olá ${nomeUsuario}! Eu sou um bot de data e hora.\n\n💡 Digite *!date* para ver a data e hora atual ou *!ajuda* para ajuda.`);
+      addLog(`✅ Resposta geral enviada para ${nomeUsuario}`);
+    } catch (error) {
+      addLog(`❌ Erro ao responder: ${error.message}`, 'error');
     }
     return;
   }
@@ -346,10 +300,16 @@ Digite qualquer mensagem para testar!`;
 
 // ==================== INICIALIZAÇÃO ====================
 
-addLog('🚀 INICIANDO WHATSAPP BOT NO RENDER...');
-addLog(`🌐 URL: https://whatsapp-bot-jh2c.onrender.com`);
+addLog('🚀 INICIANDO WHATSAPP DATE BOT...');
+addLog(`🌐 Servidor iniciando na porta ${PORT}`);
 addLog(`⏰ Início: ${new Date().toLocaleString('pt-BR')}`);
 
+// Inicializar servidor
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+});
+
+// Inicializar cliente WhatsApp
 client.initialize();
 
 // Handlers de processo
@@ -363,4 +323,13 @@ process.on('SIGTERM', () => {
   addLog('🔄 Recebido SIGTERM, desligando...');
   client.destroy();
   process.exit(0);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  addLog(`❌ Promise rejeitada não tratada: ${reason}`, 'error');
+});
+
+process.on('uncaughtException', (error) => {
+  addLog(`💥 Erro crítico: ${error.message}`, 'error');
+  process.exit(1);
 });
