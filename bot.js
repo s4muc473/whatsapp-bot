@@ -35,11 +35,32 @@ client.on('ready', () => {
 });
 
 client.on('qr', (qr) => {
-    log('📱 QR Code gerado - Escaneie com o WhatsApp:');
-    console.log('\n' + '='.repeat(50));
-    // Gera QR Code no terminal
+    log('📱 QR CODE GERADO - ESCANEIE COM O WHATSAPP');
+    console.log('\n' + '═'.repeat(60));
+    
+    // Método 1: QR Code compacto (melhor para terminal)
+    console.log('\n🔹 QR Code Compacto:');
     qrcode.generate(qr, { small: true });
-    console.log('='.repeat(50) + '\n');
+    
+    console.log('\n' + '─'.repeat(60));
+    
+    // Método 2: Apenas o código para copiar (fallback)
+    console.log('\n🔹 Código QR (texto):');
+    console.log('Código: ' + qr.substring(0, 50) + '...');
+    console.log('(Use este código se o QR visual não funcionar)');
+    
+    console.log('\n' + '─'.repeat(60));
+    
+    // Método 3: Instruções claras
+    console.log('\n📋 INSTRUÇÕES:');
+    console.log('1. Abra o WhatsApp no celular');
+    console.log('2. Toque em ⋮ (Android) ou ⚙️ (iOS)');
+    console.log('3. Vá em "Dispositivos conectados"');
+    console.log('4. Toque em "Conectar um dispositivo"');
+    console.log('5. Escaneie o QR Code acima');
+    
+    console.log('\n' + '═'.repeat(60));
+    console.log('⏳ Aguardando escaneamento...\n');
 });
 
 client.on('authenticated', () => {
@@ -135,8 +156,14 @@ _Enviado via WhatsApp Date Bot_`;
 
 // ==================== INICIALIZAÇÃO ====================
 
+console.clear();
+console.log('╔══════════════════════════════════════════════════════════╗');
+console.log('║               📅 WHATSAPP DATE BOT TERMINAL              ║');
+console.log('║                  Versão 1.0 - Terminal                   ║');
+console.log('╚══════════════════════════════════════════════════════════╝');
 log('📋 INICIANDO BOT...');
 log('💡 Comandos disponíveis: !date, !ajuda');
-log('⏰ Aguardando conexão...');
+log('⏰ Aguardando conexão...\n');
 
 client.initialize();
+
