@@ -140,16 +140,3 @@ log('💡 Comandos disponíveis: !date, !ajuda');
 log('⏰ Aguardando conexão...');
 
 client.initialize();
-
-// Handlers de processo
-process.on('SIGINT', () => {
-    log('🔄 Desligando graciosamente...');
-    client.destroy();
-    process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-    log('🔄 Recebido SIGTERM, desligando...');
-    client.destroy();
-    process.exit(0);
-});
